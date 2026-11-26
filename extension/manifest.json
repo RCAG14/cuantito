@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "Cuantito Live",
+  "version": "1.0.0",
+  "description": "Lee los comentarios de tu live de TikTok que ves en pantalla y manda los «mío» a tu Cuantito. No escribe nada en TikTok.",
+  "icons": { "128": "icon.png" },
+  "action": { "default_popup": "popup.html", "default_icon": "icon.png" },
+  "permissions": ["storage"],
+  "host_permissions": ["https://*.pages.dev/*", "https://*.cuantito.com/*"],
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [{ "matches": ["https://www.tiktok.com/*"], "js": ["content.js"], "run_at": "document_idle" }]
+}

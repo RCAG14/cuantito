@@ -1,0 +1,10 @@
+{
+  "name": "cuantito-web",
+  "private": true,
+  "scripts": {
+    "build": "python3 tools/build.py",
+    "dev": "python3 tools/build.py && wrangler pages dev",
+    "deploy": "wrangler pages deploy public --project-name cuantito --branch main"
+  },
+  "devDependencies": { "wrangler": "4.160.0" }
+}

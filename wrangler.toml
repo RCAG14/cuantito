@@ -1,0 +1,14 @@
+name = "cuantito"
+pages_build_output_dir = "public"
+compatibility_date = "2026-11-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+# WhatsApp del dueño: la cuenta que se registra con este número es la administradora
+ADMIN_WA = "64047012"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "cuantito"
+database_id = "fb74b078-dc76-4fa0-9fbe-af982199f001"
+

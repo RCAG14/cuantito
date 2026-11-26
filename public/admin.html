@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0f7a43">
+<title>Panel del dueño · Cuantito</title>
+<link rel="icon" href="/icons/icon-192.png">
+<style>
+:root{--bg:#f4f7f5;--card:#fff;--ink:#14231b;--mut:#5a6b62;--line:#dbe5df;--g:#0f7a43;--warn:#a85a00;--bad:#b3261e}
+@media (prefers-color-scheme: dark){:root{--bg:#0e1612;--card:#17221c;--ink:#e8f0eb;--mut:#9fb2a8;--line:#2a3a31}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 Figtree,system-ui,sans-serif;padding:16px;max-width:900px;margin:0 auto}
+h1{font-size:24px;margin:4px 0 12px}h2{font-size:18px;margin:22px 0 8px}
+.k{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.k div{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px}.k b{display:block;font-size:24px}
+.c{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin:8px 0;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.c img{width:84px;height:84px;object-fit:cover;border-radius:10px;cursor:zoom-in}.c .g{flex:1;min-width:180px}
+.mut{color:var(--mut);font-size:14px}button,input,select{font:inherit}
+button{border:0;border-radius:10px;padding:9px 12px;font-weight:700;background:var(--g);color:#fff;cursor:pointer}button.s{background:var(--line);color:var(--ink)}button.r{background:var(--bad)}
+input,select{padding:9px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);max-width:100%}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.tbl{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:14px;background:var(--card)}td,th{border-bottom:1px solid var(--line);padding:8px;text-align:left;white-space:nowrap}
+.pill{display:inline-block;padding:2px 8px;border-radius:99px;font-size:12px;font-weight:800;background:var(--line)}.pend{background:#ffe8c7;color:#6b3a00}.ok{background:#cdeedb;color:#0b4a28}
+#big{position:fixed;inset:0;background:rgba(0,0,0,.8);display:none;align-items:center;justify-content:center;z-index:9}#big img{max-width:96vw;max-height:92vh}
+</style>
+</head>
+<body>
+<p><a href="/" style="color:var(--g)">← Volver a la app</a></p>
+<h1>Panel del dueño</h1>
+<div id="app" class="mut">Cargando…</div>
+<div id="big" onclick="this.style.display='none'"><img alt="Comprobante"></div>
+<script>
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fecha = (t) => t ? new Date(t).toLocaleString("es-BO", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "";
+async function api(r, o = {}) { const x = await fetch("/api" + r, { ...o, headers: o.body && !(o.body instanceof FormData) ? { "content-type": "application/json" } : {} }); const d = await x.json().catch(() => ({})); if (!x.ok) throw new Error(d.error || x.status); return d; }
+function csv(nombre, filas) {
+  const t = filas.map((f) => f.map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(";")).join("\r\n");
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["﻿" + t], { type: "text/csv" })); a.download = nombre; a.click();
+}
+let D;
+async function cargar() {
+  try { D = await api("/admin/resumen"); } catch (e) { $("#app").textContent = e.message === "Entra a tu cuenta." ? "Entra a la app con tu WhatsApp de dueño y vuelve aquí." : e.message; return; }
+  const pend = D.pagos.filter((p) => p.estado === "pendiente");
+  const activos = D.usuarios.filter((u) => u.vence > Date.now() && u.plan !== "prueba").length;
+  $("#app").innerHTML = `
+  <div class="k"><div><span class="mut">Cuentas</span><b>${D.usuarios.length}</b></div><div><span class="mut">Pagando</span><b>${activos}</b></div>
+  <div><span class="mut">Pagos por revisar</span><b>${pend.length}</b></div><div><span class="mut">Cobrado total</span><b>${D.ingresos} Bs</b></div></div>
+  <h2>QR para cobrar</h2>
+  <div class="c">${D.qr ? '<img src="/api/qr" alt="Tu QR">' : '<span class="mut">Todavía no subiste tu QR.</span>'}<div class="g"><input type="file" id="qr" accept="image/*"><div class="mut">Sube la foto del QR fijo de tu cuenta del banco. Es el que ven los clientes al pagar.</div></div><button onclick="subirQR()">Subir QR</button></div>
+  <h2>Pagos por revisar</h2>
+  <p class="mut">Aprueba solo cuando veas el dinero en tu cuenta del banco, no por la foto.</p>
+  ${pend.length ? pend.map((p) => `<div class="c"><img src="/api/admin/comprobante/${esc(p.id)}" onclick="ver(this.src)" alt="Comprobante">
+    <div class="g"><b>${esc(p.negocio)}</b> · ${esc(p.wa)}<div class="mut">${esc(p.plan)} · ${esc(p.monto)} Bs · ${fecha(p.creado)}</div></div>
+    <button onclick="pago('${esc(p.id)}','aprobar')">Llegó, activar</button><button class="r" onclick="pago('${esc(p.id)}','rechazar')">No llegó</button></div>`).join("") : '<p class="mut">No hay pagos pendientes.</p>'}
+  <h2>Cuentas <button class="s" onclick="bajarUsuarios()">Descargar Excel</button></h2>
+  <div class="tbl"><table><tr><th>Negocio</th><th>WhatsApp</th><th>Plan</th><th>Vence</th><th>Cotiz.</th><th>Paquetería</th><th></th></tr>
+  ${D.usuarios.map((u) => `<tr><td>${esc(u.negocio)}</td><td><a href="https://wa.me/591${esc(u.wa)}" target="_blank" rel="noopener">${esc(u.wa)}</a></td><td>${esc(u.plan)}${u.plan_pedido ? ` <span class="pill pend">quiere ${esc(u.plan_pedido)}</span>` : ""}</td><td>${u.vence > Date.now() ? fecha(u.vence) : '<span class="pill">vencido</span>'}</td><td>${u.usadas}</td><td>${esc(u.ref || "")}</td><td><button class="s" onclick="dias('${esc(u.id)}')">+7 días</button></td></tr>`).join("")}</table></div>
+  <h2>Paqueterías afiliadas</h2>
+  <p class="mut">Ganan ${50} Bs por cada cliente nuevo, solo cuando su primer pago está aprobado. Su link: <b>${location.origin}/?ref=CODIGO</b></p>
+  <div class="row"><input id="afC" placeholder="Código (ej. ENVIOSLP)"><input id="afN" placeholder="Nombre"><input id="afW" placeholder="WhatsApp" inputmode="tel"><button onclick="afiliado()">Agregar</button></div>
+  <div class="tbl" style="margin-top:8px"><table><tr><th>Código</th><th>Nombre</th><th>WhatsApp</th><th>Clientes</th><th>Le debes</th><th></th></tr>
+  ${D.afiliados.map((a) => `<tr><td>${esc(a.codigo)}</td><td>${esc(a.nombre)}</td><td>${esc(a.wa)}</td><td>${a.referidos}</td><td>${a.debe} Bs</td><td>${a.debe ? `<button class="s" onclick="pagada('${esc(a.codigo)}')">Ya le pagué</button>` : ""}</td></tr>`).join("") || '<tr><td colspan="6" class="mut">Todavía no hay paqueterías.</td></tr>'}</table></div>`;
+}
+function ver(src) { $("#big img").src = src; $("#big").style.display = "flex"; }
+async function pago(id, accion) { try { await api("/admin/pago", { method: "POST", body: JSON.stringify({ id, accion }) }); cargar(); } catch (e) { alertar(e); } }
+async function dias(id) { try { await api("/admin/usuario", { method: "POST", body: JSON.stringify({ id, dias: 7 }) }); cargar(); } catch (e) { alertar(e); } }
+async function pagada(codigo) { await api("/admin/comision-pagada", { method: "POST", body: JSON.stringify({ codigo }) }); cargar(); }
+async function afiliado() { try { await api("/admin/afiliado", { method: "POST", body: JSON.stringify({ codigo: $("#afC").value, nombre: $("#afN").value, wa: $("#afW").value }) }); cargar(); } catch (e) { alertar(e); } }
+async function subirQR() { const f = $("#qr").files[0]; if (!f) return; const fd = new FormData(); fd.append("foto", f); try { await api("/admin/qr", { method: "POST", body: fd }); cargar(); } catch (e) { alertar(e); } }
+function alertar(e) { const p = document.createElement("p"); p.style.color = "var(--bad)"; p.textContent = e.message; $("#app").prepend(p); setTimeout(() => p.remove(), 5000); }
+function bajarUsuarios() { csv("cuantito-cuentas.csv", [["Negocio", "WhatsApp", "Plan", "Plan pedido", "Vence", "Cotizaciones", "Paquetería", "Creado"], ...D.usuarios.map((u) => [u.negocio, u.wa, u.plan, u.plan_pedido, new Date(u.vence).toLocaleDateString("es-BO"), u.usadas, u.ref, new Date(u.creado).toLocaleDateString("es-BO")])]); }
+cargar();
+</script>
+</body>
+</html>
