@@ -12,3 +12,12 @@ binding = "DB"
 database_name = "cuantito"
 database_id = "fb74b078-dc76-4fa0-9fbe-af982199f001"
 
+
+# Copia de pruebas (rama "pruebas" -> pruebas.cuantito.pages.dev): base de datos aparte
+[env.preview.vars]
+ADMIN_WA = "64047012"
+
+[[env.preview.d1_databases]]
+binding = "DB"
+database_name = "cuantito-pruebas"
+database_id = "421bdad3-eb84-4dd7-a544-79d63a8cb687"
