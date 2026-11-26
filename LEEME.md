@@ -22,5 +22,5 @@ Carpeta `extension/` (también se descarga desde la página: /cuantito-live.zip)
 ## GitHub (se publica solo)
 - Rama `main` → https://cuantito.pages.dev (la de los clientes).
 - Rama `pruebas` → https://pruebas.cuantito.pages.dev (copia para probar, con base de datos aparte `cuantito-pruebas`).
-Cada cambio que se guarda en GitHub se publica solo con `.github/workflows/publicar.yml`. Necesita en GitHub › Settings › Secrets and variables › Actions: `CLOUDFLARE_API_TOKEN` y `CLOUDFLARE_ACCOUNT_ID`.
+Cada cambio que se guarda en GitHub se publica solo con `.github/workflows/publicar.yml`. Necesita en GitHub › Settings › Secrets and variables › Actions: `CLOUDFLARE_API_TOKEN` (la cuenta de Cloudflare ya está en el archivo).
 `app/` es el código de la app; `npm run build` arma `public/index.html` desde ahí.
